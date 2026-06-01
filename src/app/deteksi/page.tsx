@@ -286,11 +286,11 @@ export default function DeteksiPage() {
             {useCamera ? (
               <div className="space-y-4">
                 {capturedImage ? (
-                  <div className="relative w-full aspect-video rounded-2xl overflow-hidden bg-black border-2 border-white shadow-lg">
+                  <div className="relative w-full aspect-square sm:aspect-video rounded-2xl overflow-hidden bg-black border-2 border-white shadow-lg">
                     <Image src={capturedImage} alt="Captured Face" fill className="object-cover" />
                   </div>
                 ) : (
-                  <div className="relative w-full aspect-video rounded-2xl overflow-hidden bg-black border-2 border-white shadow-inner flex items-center justify-center">
+                  <div className="relative w-full aspect-square sm:aspect-video rounded-2xl overflow-hidden bg-black border-2 border-white shadow-inner flex items-center justify-center">
                     <Webcam
                       audio={false}
                       ref={webcamRef}
@@ -330,7 +330,7 @@ export default function DeteksiPage() {
               // File Input
               <div className="space-y-4">
                 {capturedImage ? (
-                  <div className="relative w-full aspect-video rounded-2xl overflow-hidden bg-black border-2 border-white shadow-lg">
+                  <div className="relative w-full aspect-square sm:aspect-video rounded-2xl overflow-hidden bg-black border-2 border-white shadow-lg">
                     <Image src={capturedImage} alt="Uploaded Face" fill className="object-cover" />
                   </div>
                 ) : (
