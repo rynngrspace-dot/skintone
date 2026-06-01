@@ -1,0 +1,31 @@
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id        String        @id @default(uuid())
+  email     String        @unique
+  name      String?
+  password  String        // Hashed password
+  createdAt DateTime      @default(now())
+  scans     ScanHistory[]
+}
+
+model ScanHistory {
+  id              String   @id @default(uuid())
+  userId          String
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  timestamp       DateTime @default(now())
+  image           String   // Base64 data URI of the photo
+  skinToneClass   String   // "light" | "mid-dark" | "dark"
+  skinToneLabel   String   // e.g. "Light (Kuning Langsat / Terang)"
+  foundationRec   String
+  blushRec        String
+  lipstikRec      String
+}
