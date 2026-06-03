@@ -42,6 +42,7 @@ export default function Navbar() {
                 <Link
                   key={link.href}
                   href={link.href}
+                  prefetch={true}
                   className={`relative px-4 py-2 text-sm font-semibold rounded-xl transition-all ${
                     isActive
                       ? "text-primary-pink bg-primary-pink/8"
@@ -66,7 +67,7 @@ export default function Navbar() {
                     {userDisplayName.charAt(0).toUpperCase()}
                   </div>
                   <span className="text-xs text-[#2C2527] font-semibold max-w-[120px] truncate">
-                    {userDisplayName}
+                     {userDisplayName}
                   </span>
                 </div>
                 <button
@@ -113,6 +114,7 @@ export default function Navbar() {
                 <Link
                   key={link.href}
                   href={link.href}
+                  prefetch={true}
                   onClick={() => setMobileMenuOpen(false)}
                   className={`block px-4 py-3 text-sm font-semibold rounded-xl transition-all ${
                     isActive

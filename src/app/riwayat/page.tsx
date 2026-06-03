@@ -1,39 +1,64 @@
-import React from "react";
-import { getServerSession } from "next-auth/next";
-import { redirect } from "next/navigation";
-import { authOptions } from "../api/auth/[...nextauth]/route";
+"use client";
+
+import React, { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 import RiwayatClient from "../../components/RiwayatClient";
 import { fetchUserScanHistory } from "../actions/scanActions";
 import { HistoryItem } from "../../components/HistoryCard";
+import RiwayatLoading from "./loading";
 
-export default async function RiwayatPage() {
-  // 1. Authenticate user on the server (instantly blocks unauthorized access)
-  const session = await getServerSession(authOptions);
+export default function RiwayatPage() {
+  const router = useRouter();
+  const { data: session, status } = useSession();
+  const [historyItems, setHistoryItems] = useState<HistoryItem[]>([]);
+  const [loadingHistory, setLoadingHistory] = useState(true);
 
-  if (!session || !session.user) {
-    redirect("/login?redirect=/riwayat");
+  // Guard: Redirect if unauthenticated
+  useEffect(() => {
+    if (status === "unauthenticated") {
+      router.replace("/login?redirect=/riwayat");
+    }
+  }, [status, router]);
+
+  // Load history data client-side using the Server Action
+  useEffect(() => {
+    if (status === "authenticated" && session?.user) {
+      const loadHistory = async () => {
+        try {
+          const userId = (session.user as any).id;
+          const res = await fetchUserScanHistory(userId);
+          if (res.success && res.scans) {
+            const mappedItems: HistoryItem[] = res.scans.map((scan: any) => ({
+              id: scan.id,
+              timestamp: typeof scan.timestamp === "string" ? scan.timestamp : new Date(scan.timestamp).toISOString(),
+              image: scan.image,
+              skinToneClass: scan.skinToneClass as "light" | "mid-dark" | "dark",
+              skinToneLabel: scan.skinToneLabel,
+              recommendations: {
+                foundation: scan.foundationRec,
+                blush: scan.blushRec,
+                lipstik: scan.lipstikRec
+              }
+            }));
+            setHistoryItems(mappedItems);
+          }
+        } catch (error) {
+          console.error("Error loading scan history:", error);
+        } finally {
+          setLoadingHistory(false);
+        }
+      };
+      loadHistory();
+    }
+  }, [status, session]);
+
+  // Show skeleton loader while loading the session or data
+  if (status === "loading" || status === "unauthenticated" || loadingHistory) {
+    return <RiwayatLoading />;
   }
 
-  const userId = (session.user as any).id;
-
-  // 2. Fetch scan history directly on the server (SSR - no client-side loading spinners!)
-  const res = await fetchUserScanHistory(userId);
-  let mappedItems: HistoryItem[] = [];
-
-  if (res.success && res.scans) {
-    mappedItems = res.scans.map((scan: any) => ({
-      id: scan.id,
-      timestamp: typeof scan.timestamp === "string" ? scan.timestamp : new Date(scan.timestamp).toISOString(),
-      image: scan.image,
-      skinToneClass: scan.skinToneClass as "light" | "mid-dark" | "dark",
-      skinToneLabel: scan.skinToneLabel,
-      recommendations: {
-        foundation: scan.foundationRec,
-        blush: scan.blushRec,
-        lipstik: scan.lipstikRec
-      }
-    }));
-  }
+  const userId = (session?.user as any)?.id || "";
 
   return (
     <div className="min-h-screen flex flex-col bg-[#FFF5F6] text-[#2C2527] font-sans antialiased relative">
@@ -44,9 +69,8 @@ export default async function RiwayatPage() {
       </div>
 
       <main className="flex-1 min-h-[calc(100vh-72px)] max-w-4xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-10">
-        <RiwayatClient initialItems={mappedItems} userId={userId} />
+        <RiwayatClient initialItems={historyItems} userId={userId} />
       </main>
-
     </div>
   );
 }

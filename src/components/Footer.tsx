@@ -37,8 +37,8 @@ export default function Footer() {
                 </Link>
               </li>
               <li>
-                <Link href="/riwayat" className="text-[#7A6B6E] hover:text-primary-pink transition-colors flex items-center gap-2">
-                  <span className="w-1 h-1 rounded-full bg-primary-pink/40"></span>
+                <Link href="/riwayat" prefetch={true} className="text-[#7A6B6E] hover:text-primary-pink transition-colors flex items-center gap-2">
+                  <span className="w-1.5 h-1.5 rounded-full bg-primary-pink/40"></span>
                   Riwayat Pemindaian
                 </Link>
               </li>
