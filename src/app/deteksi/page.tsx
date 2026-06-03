@@ -5,12 +5,10 @@ import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import Image from "next/image";
 import Webcam from "react-webcam";
-import Navbar from "../../components/Navbar";
 import ProductCard from "../../components/ProductCard";
 import { katalogProduk } from "../../data/katalogProduk";
 import { predictSkinTone } from "../../services/api";
 import { saveScanToDatabase } from "../actions/scanActions";
-import Footer from "../../components/Footer";
 
 // Utility to convert base64 image data URL to a File object
 function dataURLtoFile(dataurl: string, filename: string): File {
@@ -167,7 +165,7 @@ export default function DeteksiPage() {
           blushRec: result.rekomendasi.blush,
           lipstikRec: result.rekomendasi.lipstik
         });
-        
+
         if (!saveRes.success) {
           console.error("Failed to save scan to database:", saveRes.error);
         }
@@ -208,7 +206,6 @@ export default function DeteksiPage() {
   if (isCheckingAuth || status === "loading") {
     return (
       <div className="min-h-screen flex flex-col bg-[#FFF5F6] text-[#2C2527] font-sans antialiased">
-        <Navbar />
         <div className="flex-1 flex items-center justify-center">
           <div className="relative w-12 h-12">
             <div className="absolute inset-0 rounded-full border-4 border-primary-pink/20"></div>
@@ -227,10 +224,8 @@ export default function DeteksiPage() {
         <div className="absolute bottom-32 -right-20 w-[500px] h-[500px] rounded-full bg-gradient-to-tl from-[#FFD2D7]/25 to-primary-pink/8 blur-3xl"></div>
       </div>
 
-      <Navbar />
-
       <main className="flex-1 min-h-[calc(100vh-72px)] max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-10">
-        
+
         {/* Header Title */}
         <div className="text-center max-w-2xl mx-auto mb-10 space-y-3 animate-slideUp">
           <div className="inline-flex items-center space-x-2 px-4 py-1.5 rounded-full bg-primary-pink/10 text-primary-pink text-[11px] font-bold tracking-wider uppercase border border-primary-pink/15">
@@ -251,7 +246,7 @@ export default function DeteksiPage() {
         {/* INPUT STATE */}
         {!showResults && !isAnalyzing && (
           <div className="max-w-xl mx-auto glass-card rounded-3xl p-6 sm:p-8 space-y-6 shadow-xl border border-[#FFD2D7]/60 animate-scaleIn">
-            
+
             {/* Input Selection Tabs */}
             <div className="flex border border-[#FFD2D7]/60 rounded-2xl overflow-hidden p-1 bg-white/50">
               <button
@@ -260,9 +255,8 @@ export default function DeteksiPage() {
                   setCapturedImage(null);
                   setImageFile(null);
                 }}
-                className={`flex-1 py-3 text-xs font-semibold rounded-xl transition-all cursor-pointer flex items-center justify-center gap-2 ${
-                  useCamera ? "bg-primary-pink text-white shadow-sm" : "text-[#7A6B6E] hover:text-primary-pink"
-                }`}
+                className={`flex-1 py-3 text-xs font-semibold rounded-xl transition-all cursor-pointer flex items-center justify-center gap-2 ${useCamera ? "bg-primary-pink text-white shadow-sm" : "text-[#7A6B6E] hover:text-primary-pink"
+                  }`}
               >
                 <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" /><path strokeLinecap="round" strokeLinejoin="round" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
                 Buka Kamera
@@ -273,9 +267,8 @@ export default function DeteksiPage() {
                   setCapturedImage(null);
                   setImageFile(null);
                 }}
-                className={`flex-1 py-3 text-xs font-semibold rounded-xl transition-all cursor-pointer flex items-center justify-center gap-2 ${
-                  !useCamera ? "bg-primary-pink text-white shadow-sm" : "text-[#7A6B6E] hover:text-primary-pink"
-                }`}
+                className={`flex-1 py-3 text-xs font-semibold rounded-xl transition-all cursor-pointer flex items-center justify-center gap-2 ${!useCamera ? "bg-primary-pink text-white shadow-sm" : "text-[#7A6B6E] hover:text-primary-pink"
+                  }`}
               >
                 <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>
                 Unggah Berkas
@@ -295,6 +288,7 @@ export default function DeteksiPage() {
                       audio={false}
                       ref={webcamRef}
                       screenshotFormat="image/jpeg"
+                      mirrored={true}
                       className="absolute inset-0 w-full h-full object-cover"
                     />
                     {/* Circle Face Guide Overlay */}
@@ -427,9 +421,8 @@ export default function DeteksiPage() {
                 "Menyusun rekomendasi kosmetik..."
               ].map((label, i) => (
                 <div key={i} className="flex items-center text-xs font-semibold space-x-3">
-                  <span className={`w-5 h-5 rounded-lg flex items-center justify-center text-[10px] ${
-                    currentStep >= i + 1 ? "bg-green-100 text-green-600" : currentStep === i ? "bg-primary-pink/10 text-primary-pink animate-pulse" : "bg-gray-100 text-[#A8989A]"
-                  }`}>
+                  <span className={`w-5 h-5 rounded-lg flex items-center justify-center text-[10px] ${currentStep >= i + 1 ? "bg-green-100 text-green-600" : currentStep === i ? "bg-primary-pink/10 text-primary-pink animate-pulse" : "bg-gray-100 text-[#A8989A]"
+                    }`}>
                     {currentStep >= i + 1 ? "✓" : (i + 1)}
                   </span>
                   <span className={
@@ -446,7 +439,7 @@ export default function DeteksiPage() {
         {/* RESULTS SCREEN */}
         {showResults && detectedSkinClass && resultsData && (
           <div className="space-y-8 animate-slideUp">
-            
+
             {/* Top Back Alert */}
             <div className="bg-green-50 border border-green-200 text-green-700 text-xs py-3 px-6 rounded-xl text-center font-bold max-w-4xl mx-auto flex items-center justify-center gap-2 animate-slideDown">
               <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
@@ -454,7 +447,7 @@ export default function DeteksiPage() {
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start max-w-6xl mx-auto">
-              
+
               {/* Left Column: Image Card & Classification Tag */}
               <div className="lg:col-span-4 space-y-4">
                 <div className="glass-card rounded-3xl overflow-hidden p-4 border border-[#FFD2D7]/60 shadow-lg">
@@ -463,13 +456,13 @@ export default function DeteksiPage() {
                       <Image src={capturedImage} alt="Scanned Face" fill className="object-cover" />
                     )}
                   </div>
-                  
+
                   <div className="text-center space-y-2 pb-2">
                     <p className="text-[10px] font-bold text-[#7A6B6E] uppercase tracking-wider">Hasil Klasifikasi AI</p>
                     <h3 className="text-lg font-bold text-[#2C2527]">
                       {resultsData.skin_tone}
                     </h3>
-                    
+
                     <div className="flex justify-center items-center gap-2 pt-1">
                       <span
                         className="w-4 h-4 rounded-full inline-block border border-black/10 shadow-sm animate-pulse"
@@ -528,7 +521,7 @@ export default function DeteksiPage() {
                       {matchingProducts.length} Produk
                     </span>
                   </div>
-                  
+
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                     {matchingProducts.map((product) => (
                       <ProductCard key={product.id} product={product} />
@@ -542,7 +535,6 @@ export default function DeteksiPage() {
         )}
 
       </main>
-      <Footer />
     </div>
   );
 }

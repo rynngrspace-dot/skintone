@@ -350,7 +350,7 @@ export const katalogProduk: Produk[] = [
     kategori: "Bedak",
     brand: "Emina",
     nama_produk: "Emina Daily Matte Loose Powder",
-    gambar: "/assets/images/produk/powder/bedak Emina.jpg",
+    gambar: "/assets/images/produk/powder/bedakEmina.jpg",
     harga: "Rp 35.000",
     rating: 4.5
   },

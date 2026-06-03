@@ -4,9 +4,7 @@ import React, { use } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import Navbar from "../../../components/Navbar";
 import ProductCard from "../../../components/ProductCard";
-import Footer from "../../../components/Footer";
 import { katalogProduk } from "../../../data/katalogProduk";
 
 interface ProductDetailPageProps {
@@ -24,7 +22,6 @@ export default function ProductDetailPage({ params }: ProductDetailPageProps) {
   if (!product) {
     return (
       <div className="min-h-screen flex flex-col bg-[#FFF5F6] text-[#2C2527] font-sans antialiased">
-        <Navbar />
         <div className="flex-1 flex flex-col items-center justify-center space-y-4">
           <div className="text-4xl">⚠️</div>
           <h2 className="text-xl font-bold font-serif">Produk Tidak Ditemukan</h2>
@@ -64,8 +61,6 @@ export default function ProductDetailPage({ params }: ProductDetailPageProps) {
         <div className="absolute top-1/4 left-1/10 w-80 h-80 rounded-full bg-primary-pink/10 blur-3xl animate-pulse"></div>
         <div className="absolute bottom-1/4 right-1/10 w-96 h-96 rounded-full bg-[#FFD2D7]/30 blur-3xl"></div>
       </div>
-
-      <Navbar />
 
       <main className="flex-1 max-w-5xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-12">
         {/* Back Button Link */}
@@ -168,7 +163,6 @@ export default function ProductDetailPage({ params }: ProductDetailPageProps) {
         )}
 
       </main>
-      <Footer />
     </div>
   );
 }

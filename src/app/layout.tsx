@@ -3,6 +3,7 @@ import { Plus_Jakarta_Sans, League_Spartan } from "next/font/google";
 import "./globals.css";
 
 import SessionProviderWrapper from "../components/SessionProviderWrapper";
+import MainLayoutWrapper from "../components/MainLayoutWrapper";
 
 const plusJakartaSans = Plus_Jakarta_Sans({
   variable: "--font-plus-jakarta",
@@ -33,7 +34,9 @@ export default function RootLayout({
     >
       <body className="min-h-full flex flex-col bg-[#FFF5F6] text-[#2C2527] font-sans antialiased">
         <SessionProviderWrapper>
-          {children}
+          <MainLayoutWrapper>
+            {children}
+          </MainLayoutWrapper>
         </SessionProviderWrapper>
       </body>
     </html>
