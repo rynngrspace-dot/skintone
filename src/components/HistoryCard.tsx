@@ -1,6 +1,7 @@
 import React from "react";
 import Image from "next/image";
 import { kamusWarnaLokal } from "../services/api";
+import { getShadeColors } from "../utils/shades";
 
 export interface HistoryItem {
   id: string;
@@ -33,53 +34,7 @@ export default function HistoryCard({ item, onDelete }: HistoryCardProps) {
     return "bg-stone-100";
   };
 
-  // Helper to extract shade keywords and map to exact colors
-  const getShadeColors = (recText: string): Array<{ name: string; hex: string }> => {
-    const shadesMap: Record<string, string> = {
-      // Foundation
-      "ivory": "#F9E4D4",
-      "fair": "#FCE8DB",
-      "beige": "#E8C8B0",
-      "sand": "#DEC0A5",
-      "honey": "#CFA37E",
-      "warm beige": "#D6A885",
-      "caramel": "#B0835D",
-      "cocoa": "#7C5335",
-      "espresso": "#4C2D18",
-      // Blush
-      "soft pink": "#FFB7C5",
-      "peach": "#FFD1B3",
-      "coral": "#FF7F50",
-      "mauve": "#D69CA9",
-      "rose": "#C08081",
-      "apricot": "#FBAC83",
-      "deep berry": "#8A2E44",
-      "plum": "#6B3047",
-      "merah bata": "#A04040",
-      // Lipstick
-      "nude pink": "#E09A97",
-      "soft peach": "#F4A284",
-      "berry": "#C84E6D",
-      "terracotta": "#C36241",
-      "brick red": "#A52A2A",
-      "warm nude": "#B58778",
-      "burgundy": "#800020",
-      "deep plum": "#4E1627",
-      "cokelat kemerahan": "#8B5A2B"
-    };
 
-    const foundShades: Array<{ name: string; hex: string }> = [];
-    const lowerText = recText.toLowerCase();
-
-    Object.entries(shadesMap).forEach(([name, hex]) => {
-      if (lowerText.includes(name)) {
-        const capName = name.replace(/\b\w/g, (c) => c.toUpperCase());
-        foundShades.push({ name: capName, hex });
-      }
-    });
-
-    return foundShades;
-  };
 
   return (
     <div className="glass-card rounded-2xl p-4 md:p-5 border border-[#FFD2D7]/60 shadow-sm hover:shadow-md transition-all duration-300 flex flex-col md:flex-row gap-4 md:gap-5 items-stretch md:items-start group bg-white/60">
@@ -109,7 +64,7 @@ export default function HistoryCard({ item, onDelete }: HistoryCardProps) {
         {/* Delete trigger */}
         <button
           onClick={() => onDelete(item.id)}
-          className="absolute top-0 right-0 w-8 h-8 rounded-xl bg-white hover:bg-red-50 hover:text-red-500 transition-all border border-[#FFD2D7]/60 text-[#A8989A] flex items-center justify-center font-bold text-xs shadow-sm cursor-pointer opacity-0 group-hover:opacity-100"
+          className="absolute top-0 right-0 w-8 h-8 rounded-xl bg-white hover:bg-red-50 hover:text-red-500 transition-all border border-[#FFD2D7]/60 text-[#A8989A] flex items-center justify-center font-bold text-xs shadow-sm cursor-pointer opacity-100 md:opacity-0 md:group-hover:opacity-100"
           title="Hapus dari Riwayat"
         >
           ✕
