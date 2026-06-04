@@ -6,7 +6,18 @@ Dokumen ini menjelaskan alur teknis, pra-pemrosesan data (*data preprocessing*),
 
 ## 1. Pra-Pemrosesan Data Sisi Server (Server-Side Data Preprocessing)
 
-Proses penyiapan data gambar dari kondisi mentah (file yang diunggah ke server) hingga siap diumpankan ke model klasifikasi terbagi menjadi tiga tahapan pra-pemrosesan utama yang dieksekusi sepenuhnya di sisi server (*server-side*):
+Proses penyiapan data gambar dari kondisi mentah (file yang diunggah ke server) hingga siap diumpankan ke model klasifikasi dieksekusi sepenuhnya di sisi server (*server-side*) dengan alur sistematis berikut:
+
+#### Alur Utama Pra-Pemrosesan Gambar (Server-Side):
+1. **Membaca Gambar Mentah**: Gambar masukan dibaca oleh pustaka OpenCV ke memori server dalam format warna BGR asli.
+2. **Konversi Warna BGR ke RGB**: Mengonversi format warna gambar asli dari BGR ke RGB agar selaras dengan kebutuhan model deteksi YOLOv5s.
+3. **Deteksi & Pemotongan Area Tubuh Orang**: Menjalankan model YOLOv5s untuk mengidentifikasi objek manusia terjelas, lalu memotong area tubuh tersebut dari gambar asli (`person_crop`).
+4. **Konversi Area Tubuh ke Grayscale**: Mengonversi citra tubuh hasil potong menjadi skala abu-abu (hitam-putih) untuk optimalisasi deteksi Haar Cascade.
+5. **Deteksi Wajah Lokal & Padding 15%**: Menjalankan algoritma Haar Cascade di dalam area tubuh orang untuk mendeteksi wajah utama, lalu menambahkan area padding sebesar 15% di sekeliling area wajah.
+6. **Pemotongan Wajah Akhir**: Memotong area wajah ber-padding dari gambar asli dan menyimpannya sebagai file citra wajah fisik di disk server.
+7. **Penyelarasan & Normalisasi Tensor AI**: Mengubah ukuran gambar wajah terpotong menjadi 224x224 piksel, mengonversinya menjadi PyTorch Tensor, menormalisasi nilainya dengan parameter ImageNet, dan menambahkan dimensi batch untuk siap diumpankan ke model klasifikasi `best.pt`.
+
+---
 
 ### A. Konversi Ruang Warna BGR ke RGB
 * **File Path**: [yolo_detector.py](file:///c:/Users/Mystic/Desktop/skintone-app/backend/app/core/yolo_detector.py) (Fungsi `detect_and_crop_face`)
