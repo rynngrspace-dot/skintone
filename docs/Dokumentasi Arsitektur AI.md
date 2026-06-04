@@ -4,72 +4,11 @@ Dokumen ini menjelaskan alur teknis, pra-pemrosesan data (*data preprocessing*),
 
 ---
 
-## 1. Pra-Pemrosesan Data (Data Preprocessing)
+## 1. Pra-Pemrosesan Data Sisi Server (Server-Side Data Preprocessing)
 
-Proses penyiapan data gambar dari kondisi mentah (input dari peramban/webcam klien) hingga siap diumpankan ke model klasifikasi terbagi menjadi empat tahapan penting baik di sisi klien (*client-side*) maupun di sisi server (*server-side*):
+Proses penyiapan data gambar dari kondisi mentah (file yang diunggah ke server) hingga siap diumpankan ke model klasifikasi terbagi menjadi tiga tahapan pra-pemrosesan utama yang dieksekusi sepenuhnya di sisi server (*server-side*):
 
-### A. Pra-Pemrosesan Sisi Klien: Kompresi Citra Dinamis (Client-Side)
-* **File Path**: [image.ts](file:///c:/Users/Mystic/Desktop/skintone-app/frontend/src/utils/image.ts) (Fungsi `compressBase64Image`)
-* **Mengapa ini dilakukan?**
-  Sebelum file gambar hasil tangkapan kamera dikirim ke API server atau disimpan ke database PostgreSQL, browser menggunakan **HTML5 Canvas API** untuk mereduksi dimensi gambar secara dinamis.
-  Kompresi ini berhasil mereduksi ukuran berkas dari **1 - 3 MB** menjadi hanya **20 - 40 KB** saja, menghindari hambatan jaringan (*network latency*) dan menghemat kapasitas database.
-* **Kode Implementasi**:
-```typescript
-export function compressBase64Image(
-  base64Str: string,
-  maxWidth = 400,
-  maxHeight = 400,
-  quality = 0.7
-): Promise<string> {
-  return new Promise((resolve) => {
-    if (typeof window === "undefined" || !base64Str.startsWith("data:image")) {
-      resolve(base64Str);
-      return;
-    }
-
-    const img = new Image();
-    img.src = base64Str;
-    img.onload = () => {
-      let width = img.width;
-      let height = img.height;
-
-      // 1. Hitung rasio dimensi baru agar gambar tidak gepeng (asymmetric)
-      if (width > height) {
-        if (width > maxWidth) {
-          height = Math.round((height * maxWidth) / width);
-          width = maxWidth;
-        }
-      } else {
-        if (height > maxHeight) {
-          width = Math.round((width * maxHeight) / height);
-          height = maxHeight;
-        }
-      }
-
-      // 2. Gambar ulang citra ke dalam element Canvas HTML5
-      const canvas = document.createElement("canvas");
-      canvas.width = width;
-      canvas.height = height;
-
-      const ctx = canvas.getContext("2d");
-      if (!ctx) {
-        resolve(base64Str);
-        return;
-      }
-
-      ctx.drawImage(img, 0, 0, width, height);
-
-      // 3. Ekspor canvas menjadi JPEG dengan kompresi kualitas 70%
-      const compressedDataUrl = canvas.toDataURL("image/jpeg", quality);
-      resolve(compressedDataUrl);
-    };
-
-    img.onerror = () => resolve(base64Str);
-  });
-}
-```
-
-### B. Konversi Ruang Warna BGR ke RGB (Server-Side)
+### A. Konversi Ruang Warna BGR ke RGB
 * **File Path**: [yolo_detector.py](file:///c:/Users/Mystic/Desktop/skintone-app/backend/app/core/yolo_detector.py) (Fungsi `detect_and_crop_face`)
 * **Mengapa ini dilakukan?**
   Berkas gambar dibaca dari disk server menggunakan pustaka OpenCV (`cv2.imread`) yang menghasilkan format warna bawaan **BGR** (Blue, Green, Red). 
@@ -86,7 +25,7 @@ image_rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
 results = yolo_model(image_rgb)
 ```
 
-### C. Segmentasi Wajah & Konversi Grayscale (Server-Side)
+### B. Segmentasi Wajah & Konversi Grayscale
 * **File Path**: [yolo_detector.py](file:///c:/Users/Mystic/Desktop/skintone-app/backend/app/core/yolo_detector.py)
 * **Mengapa ini dilakukan?**
   - **Grayscale**: Algoritma Haar Cascade mendeteksi wajah dengan membandingkan pola kontras bayangan gelap-terang piksel secara cepat (seperti area mata yang cenderung lebih gelap dibanding batang hidung atau dahi). Citra hitam-putih (grayscale) membuang informasi warna RGB yang tidak dibutuhkan sehingga menghemat memori dan mempercepat komputasi.
@@ -118,7 +57,7 @@ if len(faces) > 0:
     cropped_image = image[crop_ymin:crop_ymax, crop_xmin:crop_xmax]
 ```
 
-### D. Normalisasi Skala Tensor untuk Model AI (Server-Side)
+### C. Normalisasi Skala Tensor untuk Model AI
 * **File Path**: [yolo_classifier.py](file:///c:/Users/Mystic/Desktop/skintone-app/backend/app/services/yolo_classifier.py) (Fungsi `predict_skintone`)
 * **Mengapa ini dilakukan?**
   Sebelum gambar wajah yang telah dipotong masuk ke model klasifikasi kustom `best.pt`, gambar tersebut harus diubah menjadi format data PyTorch Tensor, di-resize ke resolusi standar input model (224x224), dan distandarisasi menggunakan matematika statistika ImageNet. Hal ini bertujuan mengurangi ketergantungan model terhadap kontras cahaya ekstrim.
