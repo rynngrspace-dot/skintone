@@ -10,38 +10,141 @@ Proses penyiapan data gambar dari kondisi mentah (input dari peramban/webcam kli
 
 ### A. Pra-Pemrosesan Sisi Klien: Kompresi Citra Dinamis (Client-Side)
 * **File Path**: [image.ts](file:///c:/Users/Mystic/Desktop/skintone-app/frontend/src/utils/image.ts) (Fungsi `compressBase64Image`)
-* **Proses**:
-  1. Sebelum file gambar hasil tangkapan kamera dikirim ke API server atau disimpan ke database PostgreSQL, browser menggunakan **HTML5 Canvas API** untuk mereduksi dimensi gambar secara dinamis.
-  2. Batas dimensi gambar diatur pada resolusi maksimal **400x400 piksel** dengan tetap menjaga rasio aspek asli gambar.
-  3. Matriks piksel pada canvas kemudian dikonversi menjadi string data base64 dengan format **JPEG** berkekuatan kualitas **70%** (`quality = 0.7`).
-  4. Kompresi ini berhasil mereduksi ukuran berkas dari **1 - 3 MB** menjadi hanya **20 - 40 KB** saja, menghindari hambatan jaringan (*network latency*) dan menghemat kapasitas database.
+* **Mengapa ini dilakukan?**
+  Sebelum file gambar hasil tangkapan kamera dikirim ke API server atau disimpan ke database PostgreSQL, browser menggunakan **HTML5 Canvas API** untuk mereduksi dimensi gambar secara dinamis.
+  Kompresi ini berhasil mereduksi ukuran berkas dari **1 - 3 MB** menjadi hanya **20 - 40 KB** saja, menghindari hambatan jaringan (*network latency*) dan menghemat kapasitas database.
+* **Kode Implementasi**:
+```typescript
+export function compressBase64Image(
+  base64Str: string,
+  maxWidth = 400,
+  maxHeight = 400,
+  quality = 0.7
+): Promise<string> {
+  return new Promise((resolve) => {
+    if (typeof window === "undefined" || !base64Str.startsWith("data:image")) {
+      resolve(base64Str);
+      return;
+    }
+
+    const img = new Image();
+    img.src = base64Str;
+    img.onload = () => {
+      let width = img.width;
+      let height = img.height;
+
+      // 1. Hitung rasio dimensi baru agar gambar tidak gepeng (asymmetric)
+      if (width > height) {
+        if (width > maxWidth) {
+          height = Math.round((height * maxWidth) / width);
+          width = maxWidth;
+        }
+      } else {
+        if (height > maxHeight) {
+          width = Math.round((width * maxHeight) / height);
+          height = maxHeight;
+        }
+      }
+
+      // 2. Gambar ulang citra ke dalam element Canvas HTML5
+      const canvas = document.createElement("canvas");
+      canvas.width = width;
+      canvas.height = height;
+
+      const ctx = canvas.getContext("2d");
+      if (!ctx) {
+        resolve(base64Str);
+        return;
+      }
+
+      ctx.drawImage(img, 0, 0, width, height);
+
+      // 3. Ekspor canvas menjadi JPEG dengan kompresi kualitas 70%
+      const compressedDataUrl = canvas.toDataURL("image/jpeg", quality);
+      resolve(compressedDataUrl);
+    };
+
+    img.onerror = () => resolve(base64Str);
+  });
+}
+```
 
 ### B. Konversi Ruang Warna BGR ke RGB (Server-Side)
 * **File Path**: [yolo_detector.py](file:///c:/Users/Mystic/Desktop/skintone-app/backend/app/core/yolo_detector.py) (Fungsi `detect_and_crop_face`)
-* **Proses**:
-  1. Berkas gambar dibaca dari disk server menggunakan pustaka OpenCV (`cv2.imread`) yang menghasilkan format warna bawaan **BGR** (Blue, Green, Red).
-  2. Gambar dikonversi dari ruang warna BGR ke **RGB** (Red, Green, Blue) menggunakan fungsi `cv2.cvtColor(image, cv2.COLOR_BGR2RGB)`.
-  3. Langkah ini wajib dilakukan karena model YOLOv5 dilatih menggunakan citra dengan standar saluran warna RGB. Jika tidak dikonversi, pemetaan warna akan terbalik (kulit menjadi kebiruan), yang dapat menyebabkan YOLOv5 gagal mendeteksi keberadaan objek manusia.
+* **Mengapa ini dilakukan?**
+  Berkas gambar dibaca dari disk server menggunakan pustaka OpenCV (`cv2.imread`) yang menghasilkan format warna bawaan **BGR** (Blue, Green, Red). 
+  Namun, model YOLOv5 dilatih menggunakan standar warna **RGB** (Red, Green, Blue). Jika tidak dikonversi, pemetaan warna akan terbalik (kulit menjadi kebiruan), yang dapat menyebabkan YOLOv5 gagal mendeteksi keberadaan objek manusia karena kesalahan representasi warna.
+* **Kode Implementasi**:
+```python
+# 1. Membaca gambar menggunakan OpenCV (Default: BGR)
+image = cv2.imread(image_path)
+if image is None:
+    raise ValueError(f"Tidak dapat membaca gambar dari path: {image_path}")
+
+# 2. Konversi ruang warna dari BGR ke RGB agar sesuai dengan standar YOLOv5
+image_rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+results = yolo_model(image_rgb)
+```
 
 ### C. Segmentasi Wajah & Konversi Grayscale (Server-Side)
 * **File Path**: [yolo_detector.py](file:///c:/Users/Mystic/Desktop/skintone-app/backend/app/core/yolo_detector.py)
-* **Proses**:
-  1. YOLOv5s mendeteksi kotak pembatas (*bounding box*) manusia, kemudian area tubuh tersebut dipotong sebagai gambar lokal (`person_crop`).
-  2. Gambar potongan tubuh dikonversi ke skala abu-abu (**Grayscale**) menggunakan `cv2.cvtColor(person_crop, cv2.COLOR_BGR2GRAY)`.
-  3. Konversi grayscale membuang data warna yang tidak dibutuhkan dan menyisakan kontras gelap-terang piksel saja. Ini diperlukan karena algoritma **Haar Cascade Classifier** (`haarcascade_frontalface_default.xml`) mendeteksi struktur wajah berdasarkan perbedaan bayangan wajah (seperti area mata yang cenderung lebih gelap dibanding dahi).
-  4. Setelah wajah terdeteksi, koordinat wajah diberikan **padding tambahan sebesar 15%** ke sekeliling kotak untuk menyertakan garis rahang, telinga, rambut, dan dahi (sebagai referensi warna kulit sekunder).
+* **Mengapa ini dilakukan?**
+  - **Grayscale**: Algoritma Haar Cascade mendeteksi wajah dengan membandingkan pola kontras bayangan gelap-terang piksel secara cepat (seperti area mata yang cenderung lebih gelap dibanding batang hidung atau dahi). Citra hitam-putih (grayscale) membuang informasi warna RGB yang tidak dibutuhkan sehingga menghemat memori dan mempercepat komputasi.
+  - **Padding 15%**: Menambahkan 15% ruang kosong di sekeliling deteksi wajah agar dahi, telinga, rambut, dan rahang ikut terpotong. Bagian-bagian ini menyimpan kontribusi besar warna kulit untuk analisis undertone.
+* **Kode Implementasi**:
+```python
+# 1. Konversi area potongan tubuh manusia ke skala abu-abu (Grayscale)
+gray_person = cv2.cvtColor(person_crop, cv2.COLOR_BGR2GRAY)
+
+# 2. Deteksi area wajah lokal menggunakan Haar Cascade Classifier
+faces = face_cascade.detectMultiScale(
+    gray_person, scaleFactor=1.1, minNeighbors=5, minSize=(40, 40)
+)
+
+if len(faces) > 0:
+    # 3. Urutkan dari wajah dengan area terbesar
+    faces = sorted(faces, key=lambda f: f[2] * f[3], reverse=True)
+    fx, fy, fw, fh = faces[0]
+    
+    # 4. Berikan padding 15% untuk menangkap dahi, garis rahang, rambut, dan telinga
+    pad_y = int(fh * 0.15)
+    pad_x = int(fw * 0.15)
+    
+    crop_ymin = max(ymin + fy - pad_y, 0)
+    crop_ymax = min(ymin + fy + fh + pad_y, h)
+    crop_xmin = max(xmin + fx - pad_x, 0)
+    crop_xmax = min(xmin + fx + fw + pad_x, w)
+    
+    cropped_image = image[crop_ymin:crop_ymax, crop_xmin:crop_xmax]
+```
 
 ### D. Normalisasi Skala Tensor untuk Model AI (Server-Side)
 * **File Path**: [yolo_classifier.py](file:///c:/Users/Mystic/Desktop/skintone-app/backend/app/services/yolo_classifier.py) (Fungsi `predict_skintone`)
-* **Proses**:
-  1. Gambar potongan wajah di-load menggunakan modul PIL Image dan dipastikan dalam format warna RGB.
-  2. Menggunakan `torchvision.transforms`, gambar melalui pipeline normalisasi matematika:
-     - **Resize**: Resolusi gambar diubah secara presisi menjadi **224x224 piksel** (dimensi input yang dibutuhkan model klasifikasi YOLOv5).
-     - **ToTensor**: Gambar dikonversi menjadi tipe data tensor PyTorch. Nilai piksel integer (0-255) dinormalisasi ke rentang nilai pecahan float **[0.0, 1.0]**, serta dimensinya diatur ulang dari format *(Height, Width, Channel)* menjadi *(Channel, Height, Width)*.
-     - **Normalize**: Tensor distandarisasi menggunakan rata-rata (*mean*) dan standar deviasi (*standard deviation*) dataset **ImageNet**:
-       - `mean = [0.485, 0.456, 0.406]`
-       - `std = [0.229, 0.224, 0.225]`
-  3. Tensor diberikan dimensi batch tambahan menggunakan `.unsqueeze(0)` sehingga berubah bentuk menjadi `[1, 3, 224, 224]`, siap dikirim ke model `best.pt` untuk klasifikasi.
+* **Mengapa ini dilakukan?**
+  Sebelum gambar wajah yang telah dipotong masuk ke model klasifikasi kustom `best.pt`, gambar tersebut harus diubah menjadi format data PyTorch Tensor, di-resize ke resolusi standar input model (224x224), dan distandarisasi menggunakan matematika statistika ImageNet. Hal ini bertujuan mengurangi ketergantungan model terhadap kontras cahaya ekstrim.
+* **Kode Implementasi**:
+```python
+# 1. Membaca gambar wajah hasil pemotongan dan konversi ke RGB
+img = Image.open(cropped_image_path).convert('RGB')
+
+# 2. Setup pipeline transformasi matematika data gambar
+preprocess = transforms.Compose([
+    # Ubah resolusi gambar secara presisi ke standar 224x224 piksel
+    transforms.Resize((224, 224)),
+    
+    # Konversi data gambar menjadi PyTorch Tensor [0.0, 1.0] dan ubah format ke (C, H, W)
+    transforms.ToTensor(),
+    
+    # Normalisasi menggunakan mean & std deviasi standar dataset ImageNet
+    transforms.Normalize(
+        mean=[0.485, 0.456, 0.406], 
+        std=[0.229, 0.224, 0.225]
+    )
+])
+
+# 3. Tambahkan dimensi batch di depan sehingga bentuknya [1, 3, 224, 224]
+input_tensor = preprocess(img).unsqueeze(0)
+```
 
 ---
 
