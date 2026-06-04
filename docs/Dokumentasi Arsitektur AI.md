@@ -6,33 +6,42 @@ Dokumen ini menjelaskan alur teknis, pra-pemrosesan data (*data preprocessing*),
 
 ## 1. Pra-Pemrosesan Data (Data Preprocessing)
 
-Proses penyiapan data gambar dari kondisi mentah (input dari peramban/webcam klien) hingga siap diumpankan ke model klasifikasi terbagi menjadi beberapa tahapan penting:
+Proses penyiapan data gambar dari kondisi mentah (input dari peramban/webcam klien) hingga siap diumpankan ke model klasifikasi terbagi menjadi empat tahapan penting baik di sisi klien (*client-side*) maupun di sisi server (*server-side*):
 
-### A. Konversi Warna & Deteksi Orang (YOLOv5s)
-* **File Paths**: [yolo_detector.py](skintone-app/backend/app/core/yolo_detector.py) (Fungsi `detect_and_crop_face`)
+### A. Pra-Pemrosesan Sisi Klien: Kompresi Citra Dinamis (Client-Side)
+* **File Path**: [image.ts](file:///c:/Users/Mystic/Desktop/skintone-app/frontend/src/utils/image.ts) (Fungsi `compressBase64Image`)
 * **Proses**:
-  1. Gambar mentah dari klien dibaca menggunakan modul OpenCV (`cv2.imread`).
-  2. Gambar dikonversi dari ruang warna BGR (standar OpenCV) ke RGB (`cv2.cvtColor`) agar sesuai dengan standar deteksi arsitektur YOLOv5.
-  3. Gambar diproses oleh model dasar **YOLOv5s (small)** untuk melacak objek berlabel `person` (ID Kelas `0`). Jika terdeteksi beberapa orang, sistem akan memilih objek dengan tingkat kepercayaan (*confidence rate*) tertinggi.
+  1. Sebelum file gambar hasil tangkapan kamera dikirim ke API server atau disimpan ke database PostgreSQL, browser menggunakan **HTML5 Canvas API** untuk mereduksi dimensi gambar secara dinamis.
+  2. Batas dimensi gambar diatur pada resolusi maksimal **400x400 piksel** dengan tetap menjaga rasio aspek asli gambar.
+  3. Matriks piksel pada canvas kemudian dikonversi menjadi string data base64 dengan format **JPEG** berkekuatan kualitas **70%** (`quality = 0.7`).
+  4. Kompresi ini berhasil mereduksi ukuran berkas dari **1 - 3 MB** menjadi hanya **20 - 40 KB** saja, menghindari hambatan jaringan (*network latency*) dan menghemat kapasitas database.
 
-### B. Segmentasi & Pemotongan Wajah (Haar Cascade)
-* **File Paths**: [yolo_detector.py](skintone-app/backend/app/core/yolo_detector.py)
+### B. Konversi Ruang Warna BGR ke RGB (Server-Side)
+* **File Path**: [yolo_detector.py](file:///c:/Users/Mystic/Desktop/skintone-app/backend/app/core/yolo_detector.py) (Fungsi `detect_and_crop_face`)
 * **Proses**:
-  1. Setelah koordinat orang terdeteksi, area tersebut di-crop.
-  2. Di dalam area orang tersebut, algoritma **Haar Cascade** OpenCV (`haarcascade_frontalface_default.xml`) mendeteksi koordinat persegi wajah secara spesifik.
-  3. Sistem menambahkan **padding sebesar 15%** secara dinamis ke sekeliling koordinat wajah (atas, bawah, kiri, kanan). Padding ini krusial untuk menangkap informasi tambahan seperti garis rahang, telinga, dahi, dan rambut yang membawa karakteristik undertone kulit.
-  4. Jika Haar Cascade gagal mendeteksi wajah di dalam area orang, sistem menerapkan *fallback* berupa pemotongan 45% bagian atas tubuh orang tersebut (area wajah/leher default).
+  1. Berkas gambar dibaca dari disk server menggunakan pustaka OpenCV (`cv2.imread`) yang menghasilkan format warna bawaan **BGR** (Blue, Green, Red).
+  2. Gambar dikonversi dari ruang warna BGR ke **RGB** (Red, Green, Blue) menggunakan fungsi `cv2.cvtColor(image, cv2.COLOR_BGR2RGB)`.
+  3. Langkah ini wajib dilakukan karena model YOLOv5 dilatih menggunakan citra dengan standar saluran warna RGB. Jika tidak dikonversi, pemetaan warna akan terbalik (kulit menjadi kebiruan), yang dapat menyebabkan YOLOv5 gagal mendeteksi keberadaan objek manusia.
 
-### C. Normalisasi Gambar & Skala Tensor
-* **File Paths**: [yolo_classifier.py](skintone-app/backend/app/services/yolo_classifier.py) (Fungsi `predict_skintone`)
+### C. Segmentasi Wajah & Konversi Grayscale (Server-Side)
+* **File Path**: [yolo_detector.py](file:///c:/Users/Mystic/Desktop/skintone-app/backend/app/core/yolo_detector.py)
 * **Proses**:
-  1. File potongan wajah dibaca oleh PIL (Python Imaging Library) dan dikonversi ke format RGB penuh.
-  2. Menggunakan modul `torchvision.transforms`, gambar diubah ukurannya secara presisi menjadi **224x224 piksel** (dimensi input default YOLOv5 Classifier).
-  3. Gambar dikonversi menjadi PyTorch Tensor.
-  4. Tensor dinormalisasi dengan nilai rata-rata (*mean*) dan standar deviasi (*std*) standar dataset **ImageNet**:
-     * `mean = [0.485, 0.456, 0.406]`
-     * `std = [0.229, 0.224, 0.225]`
-     Hal ini bertujuan agar data input memiliki distribusi warna yang sama dengan dataset yang digunakan saat melatih model klasifikasi.
+  1. YOLOv5s mendeteksi kotak pembatas (*bounding box*) manusia, kemudian area tubuh tersebut dipotong sebagai gambar lokal (`person_crop`).
+  2. Gambar potongan tubuh dikonversi ke skala abu-abu (**Grayscale**) menggunakan `cv2.cvtColor(person_crop, cv2.COLOR_BGR2GRAY)`.
+  3. Konversi grayscale membuang data warna yang tidak dibutuhkan dan menyisakan kontras gelap-terang piksel saja. Ini diperlukan karena algoritma **Haar Cascade Classifier** (`haarcascade_frontalface_default.xml`) mendeteksi struktur wajah berdasarkan perbedaan bayangan wajah (seperti area mata yang cenderung lebih gelap dibanding dahi).
+  4. Setelah wajah terdeteksi, koordinat wajah diberikan **padding tambahan sebesar 15%** ke sekeliling kotak untuk menyertakan garis rahang, telinga, rambut, dan dahi (sebagai referensi warna kulit sekunder).
+
+### D. Normalisasi Skala Tensor untuk Model AI (Server-Side)
+* **File Path**: [yolo_classifier.py](file:///c:/Users/Mystic/Desktop/skintone-app/backend/app/services/yolo_classifier.py) (Fungsi `predict_skintone`)
+* **Proses**:
+  1. Gambar potongan wajah di-load menggunakan modul PIL Image dan dipastikan dalam format warna RGB.
+  2. Menggunakan `torchvision.transforms`, gambar melalui pipeline normalisasi matematika:
+     - **Resize**: Resolusi gambar diubah secara presisi menjadi **224x224 piksel** (dimensi input yang dibutuhkan model klasifikasi YOLOv5).
+     - **ToTensor**: Gambar dikonversi menjadi tipe data tensor PyTorch. Nilai piksel integer (0-255) dinormalisasi ke rentang nilai pecahan float **[0.0, 1.0]**, serta dimensinya diatur ulang dari format *(Height, Width, Channel)* menjadi *(Channel, Height, Width)*.
+     - **Normalize**: Tensor distandarisasi menggunakan rata-rata (*mean*) dan standar deviasi (*standard deviation*) dataset **ImageNet**:
+       - `mean = [0.485, 0.456, 0.406]`
+       - `std = [0.229, 0.224, 0.225]`
+  3. Tensor diberikan dimensi batch tambahan menggunakan `.unsqueeze(0)` sehingga berubah bentuk menjadi `[1, 3, 224, 224]`, siap dikirim ke model `best.pt` untuk klasifikasi.
 
 ---
 
