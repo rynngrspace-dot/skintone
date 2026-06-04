@@ -6,7 +6,8 @@ import { useSession } from "next-auth/react";
 import Image from "next/image";
 import Webcam from "react-webcam";
 import ProductCard from "../../components/ProductCard";
-import { katalogProduk } from "../../data/katalogProduk";
+import { katalogProduk, Produk } from "../../data/katalogProduk";
+import { fetchProducts } from "../actions/productActions";
 import { predictSkinTone } from "../../services/api";
 import { saveScanToDatabase } from "../actions/scanActions";
 import { compressBase64Image } from "../../utils/image";
@@ -51,6 +52,18 @@ export default function DeteksiPage() {
   } | null>(null);
 
   const webcamRef = useRef<Webcam>(null);
+  const [products, setProducts] = useState<Produk[]>([]);
+
+  // Load products from DB on mount
+  useEffect(() => {
+    fetchProducts().then((res) => {
+      if (res.success && res.products && res.products.length > 0) {
+        setProducts(res.products);
+      } else {
+        setProducts(katalogProduk);
+      }
+    });
+  }, []);
 
   // Auth Redirect Guard using NextAuth Session
   useEffect(() => {
@@ -205,7 +218,7 @@ export default function DeteksiPage() {
 
   // Get distinct products matching the detected skin tone class
   const matchingProducts = detectedSkinClass
-    ? katalogProduk.filter((prod) => prod.target_skintone?.includes(detectedSkinClass))
+    ? products.filter((prod) => prod.target_skintone?.includes(detectedSkinClass))
     : [];
 
   const getSkinToneColor = (cls: string) => {

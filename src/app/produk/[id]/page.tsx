@@ -1,11 +1,12 @@
 "use client";
 
-import React, { use } from "react";
+import React, { use, useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import ProductCard from "../../../components/ProductCard";
-import { katalogProduk } from "../../../data/katalogProduk";
+import { katalogProduk, Produk } from "../../../data/katalogProduk";
+import { fetchProductById } from "../../actions/productActions";
 
 interface ProductDetailPageProps {
   params: Promise<{ id: string }>;
@@ -16,8 +17,43 @@ export default function ProductDetailPage({ params }: ProductDetailPageProps) {
   const router = useRouter();
   const productId = parseInt(resolvedParams.id, 10);
 
-  // Find the product by ID
-  const product = katalogProduk.find((p) => p.id === productId);
+  const [product, setProduct] = useState<Produk | null>(null);
+  const [similarProducts, setSimilarProducts] = useState<Produk[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    setLoading(true);
+    fetchProductById(productId).then((res) => {
+      if (res.success && res.product) {
+        setProduct(res.product);
+        setSimilarProducts(res.similarProducts || []);
+      } else {
+        const prod = katalogProduk.find((p) => p.id === productId);
+        setProduct(prod || null);
+        if (prod) {
+          const sim = katalogProduk
+            .filter((p) => p.kategori === prod.kategori && p.id !== prod.id)
+            .slice(0, 4);
+          setSimilarProducts(sim);
+        }
+      }
+      setLoading(false);
+    });
+  }, [productId]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex flex-col bg-[#FFF5F6] text-[#2C2527] font-sans antialiased">
+        <div className="flex-1 flex items-center justify-center">
+          <div className="relative w-12 h-12">
+            <div className="absolute inset-0 rounded-full border-4 border-primary-pink/20"></div>
+            <div className="absolute inset-0 rounded-full border-4 border-t-primary-pink border-r-primary-pink animate-spin"></div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
 
   if (!product) {
     return (
@@ -49,10 +85,6 @@ export default function ProductDetailPage({ params }: ProductDetailPageProps) {
     }`;
   };
 
-  // Filter similar products (same category, excluding current product)
-  const similarProducts = katalogProduk
-    .filter((p) => p.kategori === product.kategori && p.id !== product.id)
-    .slice(0, 4);
 
   return (
     <div className="min-h-screen flex flex-col bg-[#FFF5F6] text-[#2C2527] font-sans antialiased relative">

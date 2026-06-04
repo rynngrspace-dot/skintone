@@ -1,23 +1,35 @@
 "use client";
 
-import React, { useState, useRef, useCallback } from "react";
+import React, { useState, useRef, useCallback, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import ProductCard from "../components/ProductCard";
-import { katalogProduk } from "../data/katalogProduk";
+import { katalogProduk, Produk } from "../data/katalogProduk";
+import { fetchProducts } from "./actions/productActions";
 
 export default function Home() {
+  const [products, setProducts] = useState<Produk[]>([]);
   // Product Catalog Filtering States
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("Semua");
   const catalogRef = useRef<HTMLDivElement>(null);
   const filterRef = useRef<HTMLDivElement>(null);
 
+  useEffect(() => {
+    fetchProducts().then((res) => {
+      if (res.success && res.products && res.products.length > 0) {
+        setProducts(res.products);
+      } else {
+        setProducts(katalogProduk);
+      }
+    });
+  }, []);
+
   // Get distinct categories for catalog filter
   const categories = ["Semua", "Foundation", "Blush On", "Lipstik", "Bedak", "Maskara", "Setting Spray"];
 
   // Filter products based on search and category
-  const filteredProducts = katalogProduk.filter((prod) => {
+  const filteredProducts = products.filter((prod) => {
     const matchesSearch =
       prod.nama_produk.toLowerCase().includes(searchQuery.toLowerCase()) ||
       prod.brand.toLowerCase().includes(searchQuery.toLowerCase());
@@ -33,6 +45,7 @@ export default function Home() {
   const handleCategoryChange = useCallback((cat: string) => {
     setSelectedCategory(cat);
   }, []);
+
 
   return (
     <div className="flex-1 flex flex-col min-h-screen relative selection:bg-primary-pink selection:text-white">
@@ -78,7 +91,7 @@ export default function Home() {
             {/* Stats row */}
             <div className="pt-6 flex items-center justify-center lg:justify-start gap-8">
               <div className="text-center lg:text-left">
-                <p className="text-xl font-extrabold text-[#2C2527]">{katalogProduk.length}+</p>
+                <p className="text-xl font-extrabold text-[#2C2527]">{products.length || katalogProduk.length}+</p>
                 <p className="text-[10px] text-[#7A6B6E] font-semibold uppercase tracking-wider">Produk Terdaftar</p>
               </div>
               <div className="w-px h-10 bg-[#FFD2D7]"></div>

@@ -29,3 +29,15 @@ model ScanHistory {
   blushRec        String
   lipstikRec      String
 }
+
+model Product {
+  id             Int      @id
+  kategori       String
+  brand          String
+  namaProduk     String   @map("nama_produk")
+  gambar         String
+  harga          String
+  rating         Float
+  targetSkintone String[] @map("target_skintone")
+}
+
