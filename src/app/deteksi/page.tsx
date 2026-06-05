@@ -44,7 +44,7 @@ export default function DeteksiPage() {
   const [errorMessage, setErrorMessage] = useState("");
 
   // Results states
-  const [detectedSkinClass, setDetectedSkinClass] = useState<"light" | "mid-dark" | "dark" | null>(null);
+  const [detectedSkinClass, setDetectedSkinClass] = useState<"light" | "mid-dark" | "dark" | "no-face" | null>(null);
   const [resultsData, setResultsData] = useState<{
     skin_tone: string;
     rekomendasi: { foundation: string; blush: string; lipstik: string };
@@ -540,67 +540,90 @@ export default function DeteksiPage() {
 
               {/* Right Column: Descriptions & Makeup Recommendations */}
               <div className="lg:col-span-8 space-y-6">
-                {/* Description Card */}
-                <div className="glass-card rounded-2xl p-6 border border-[#FFD2D7]/60 shadow-sm space-y-3 bg-white/70">
-                  <h3 className="text-xs font-bold text-[#2C2527] flex items-center gap-2 uppercase tracking-wide">
-                    <span>📝</span> Penjelasan Warna Kulit
-                  </h3>
-                  <p className="text-[#7A6B6E] text-xs sm:text-sm leading-relaxed font-medium">
-                    {resultsData.penjelasan}
-                  </p>
-                </div>
-
-                {/* Recommendations Grid */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  {[
-                    { icon: "🧴", label: "Alas Bedak (Foundation)", value: resultsData.rekomendasi.foundation },
-                    { icon: "🍑", label: "Perona Pipi (Blush On)", value: resultsData.rekomendasi.blush },
-                    { icon: "💄", label: "Pewarna Bibir (Lipstik)", value: resultsData.rekomendasi.lipstik },
-                  ].map((rec, i) => {
-                    const shades = getShadeColors(rec.value);
-                    return (
-                      <div key={i} className="bg-[#FFF8F9] rounded-2xl p-5 border border-[#FFD2D7]/40 flex flex-col justify-between shadow-sm hover:shadow-md hover:border-primary-pink/30 transition-all min-h-[140px]">
-                        <div className="space-y-2">
-                          <div className="text-2xl">{rec.icon}</div>
-                          <h4 className="text-xs font-extrabold text-[#2C2527] uppercase tracking-wider">{rec.label}</h4>
-                          <p className="text-xs text-[#7A6B6E] leading-relaxed font-medium">
-                            {rec.value}
-                          </p>
-                        </div>
-                        {/* Visual Swatches */}
-                        {shades.length > 0 && (
-                          <div className="flex flex-wrap gap-1.5 pt-2.5 mt-2 border-t border-[#FFD2D7]/15">
-                            {shades.map((s, idx) => (
-                              <span key={idx} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[9px] font-semibold bg-white border border-[#FFD2D7]/30 text-[#7A6B6E] shadow-sm">
-                                <span className="w-2.5 h-2.5 rounded-full border border-black/10 shadow-sm flex-shrink-0" style={{ backgroundColor: s.hex }}></span>
-                                {s.name}
-                              </span>
-                            ))}
-                          </div>
-                        )}
+                {detectedSkinClass === "no-face" ? (
+                  /* Warning Card for No Face Detected */
+                  <div className="glass-card rounded-3xl p-8 border border-amber-200/60 bg-amber-50/40 shadow-sm space-y-4 animate-scaleIn">
+                    <div className="flex items-center gap-3">
+                      <div className="w-12 h-12 rounded-2xl bg-amber-100/80 flex items-center justify-center text-2xl">
+                        ⚠️
                       </div>
-                    );
-                  })}
-                </div>
-
-                {/* Recommended Products Grid */}
-                <div className="space-y-4 pt-4">
-                  <div className="flex justify-between items-center">
-                    <h3 className="text-base font-bold text-[#2C2527] flex items-center gap-2">
-                      <span>🛍️</span> Rekomendasi Produk yang Cocok
-                    </h3>
-                    <span className="text-[10px] text-primary-pink font-bold bg-primary-pink/10 px-3 py-1 rounded-lg border border-primary-pink/20">
-                      {matchingProducts.length} Produk
-                    </span>
+                      <div>
+                        <h3 className="text-base font-bold text-[#2C2527]">
+                          Wajah Tidak Terdeteksi
+                        </h3>
+                        <p className="text-[11px] text-[#7A6B6E] font-medium">
+                          Gagal memproses analisis AI
+                        </p>
+                      </div>
+                    </div>
+                    <p className="text-[#7A6B6E] text-xs sm:text-sm leading-relaxed font-medium pt-4 border-t border-amber-200/30">
+                      Sistem tidak dapat mendeteksi adanya objek manusia atau area wajah pada foto yang diunggah. Pastikan posisi wajah tegak, menghadap kamera, dan mendapatkan pencahayaan yang cukup.
+                    </p>
                   </div>
+                ) : (
+                  <>
+                    {/* Description Card */}
+                    <div className="glass-card rounded-2xl p-6 border border-[#FFD2D7]/60 shadow-sm space-y-3 bg-white/70">
+                      <h3 className="text-xs font-bold text-[#2C2527] flex items-center gap-2 uppercase tracking-wide">
+                        <span>📝</span> Penjelasan Warna Kulit
+                      </h3>
+                      <p className="text-[#7A6B6E] text-xs sm:text-sm leading-relaxed font-medium">
+                        {resultsData.penjelasan}
+                      </p>
+                    </div>
 
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                    {matchingProducts.map((product) => (
-                      <ProductCard key={product.id} product={product} />
-                    ))}
-                  </div>
-                </div>
+                    {/* Recommendations Grid */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      {[
+                        { icon: "🧴", label: "Alas Bedak (Foundation)", value: resultsData.rekomendasi.foundation },
+                        { icon: "🍑", label: "Perona Pipi (Blush On)", value: resultsData.rekomendasi.blush },
+                        { icon: "💄", label: "Pewarna Bibir (Lipstik)", value: resultsData.rekomendasi.lipstik },
+                      ].map((rec, i) => {
+                        const shades = getShadeColors(rec.value);
+                        return (
+                          <div key={i} className="bg-[#FFF8F9] rounded-2xl p-5 border border-[#FFD2D7]/40 flex flex-col justify-between shadow-sm hover:shadow-md hover:border-primary-pink/30 transition-all min-h-[140px]">
+                            <div className="space-y-2">
+                              <div className="text-2xl">{rec.icon}</div>
+                              <h4 className="text-xs font-extrabold text-[#2C2527] uppercase tracking-wider">{rec.label}</h4>
+                              <p className="text-xs text-[#7A6B6E] leading-relaxed font-medium">
+                                {rec.value}
+                              </p>
+                            </div>
+                            {/* Visual Swatches */}
+                            {shades.length > 0 && (
+                              <div className="flex flex-wrap gap-1.5 pt-2.5 mt-2 border-t border-[#FFD2D7]/15">
+                                {shades.map((s, idx) => (
+                                  <span key={idx} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[9px] font-semibold bg-white border border-[#FFD2D7]/30 text-[#7A6B6E] shadow-sm">
+                                    <span className="w-2.5 h-2.5 rounded-full border border-black/10 shadow-sm flex-shrink-0" style={{ backgroundColor: s.hex }}></span>
+                                    {s.name}
+                                  </span>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
 
+                    {/* Recommended Products Grid */}
+                    <div className="space-y-4 pt-4">
+                      <div className="flex justify-between items-center">
+                        <h3 className="text-base font-bold text-[#2C2527] flex items-center gap-2">
+                          <span>🛍️</span> Rekomendasi Produk yang Cocok
+                        </h3>
+                        <span className="text-[10px] text-primary-pink font-bold bg-primary-pink/10 px-3 py-1 rounded-lg border border-primary-pink/20">
+                          {matchingProducts.length} Produk
+                        </span>
+                      </div>
+
+                      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                        {matchingProducts.map((product) => (
+                          <ProductCard key={product.id} product={product} />
+                        ))}
+                      </div>
+                    </div>
+                  </>
+                )}
               </div>
             </div>
           </div>

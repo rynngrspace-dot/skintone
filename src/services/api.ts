@@ -112,9 +112,9 @@ export async function predictSkinTone(
         try {
           const errText = await response.text();
           errMsg = errText || errMsg;
-        } catch (e2) {}
+        } catch (e2) { }
       }
-      
+
       const apiError = new Error(errMsg);
       (apiError as any).isValidationError = response.status === 400;
       throw apiError;
