@@ -104,8 +104,20 @@ export async function predictSkinTone(
     });
 
     if (!response.ok) {
-      const errText = await response.text();
-      throw new Error(`API error (${response.status}): ${errText}`);
+      let errMsg = "Terjadi kesalahan saat memproses gambar.";
+      try {
+        const errJson = await response.json();
+        errMsg = errJson.detail || errMsg;
+      } catch (e) {
+        try {
+          const errText = await response.text();
+          errMsg = errText || errMsg;
+        } catch (e2) {}
+      }
+      
+      const apiError = new Error(errMsg);
+      (apiError as any).isValidationError = response.status === 400;
+      throw apiError;
     }
 
     const data = await response.json();
@@ -123,7 +135,13 @@ export async function predictSkinTone(
       rekomendasi: data.rekomendasi || kamusWarnaLokal[skinToneClass].rekomendasi,
       penjelasan: data.penjelasan || kamusWarnaLokal[skinToneClass].penjelasan
     };
-  } catch (error) {
+  } catch (error: any) {
+    // Jika merupakan validation error dari API (seperti tidak ada wajah/orang),
+    // langsung lempar ke UI dan jangan berikan mock prediction.
+    if (error?.isValidationError) {
+      throw error;
+    }
+
     console.warn("Backend API offline or threw error. Falling back to mock prediction.", error);
 
     // Offline fallback: choose random class and simulate delay
