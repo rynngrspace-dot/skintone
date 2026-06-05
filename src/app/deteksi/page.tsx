@@ -202,7 +202,24 @@ export default function DeteksiPage() {
 
     } catch (err: any) {
       setIsAnalyzing(false);
-      setErrorMessage(err?.message || "Terjadi kesalahan saat memproses gambar. Coba lagi.");
+      const isNoFaceError = err?.message?.toLowerCase().includes("tidak ada objek manusia") || 
+                            err?.message?.toLowerCase().includes("tidak ada wajah");
+      
+      if (isNoFaceError) {
+        setDetectedSkinClass("no-face");
+        setResultsData({
+          skin_tone: "Tidak Ada Wajah Terdeteksi",
+          rekomendasi: {
+            foundation: "Silakan gunakan foto wajah yang jelas",
+            blush: "Silakan gunakan foto wajah yang jelas",
+            lipstik: "Silakan gunakan foto wajah yang jelas"
+          },
+          penjelasan: "Sistem tidak dapat mendeteksi adanya objek manusia atau area wajah pada foto yang diunggah. Pastikan posisi wajah tegak, menghadap kamera, dan mendapatkan pencahayaan yang cukup."
+        });
+        setShowResults(true);
+      } else {
+        setErrorMessage(err?.message || "Terjadi kesalahan saat memproses gambar. Coba lagi.");
+      }
     }
   };
 
@@ -224,6 +241,7 @@ export default function DeteksiPage() {
   const getSkinToneColor = (cls: string) => {
     if (cls === "light") return "#F5D6C6";
     if (cls === "mid-dark") return "#D2A27E";
+    if (cls === "no-face") return "#CCCCCC";
     return "#8D5B4C";
   };
 
@@ -465,10 +483,17 @@ export default function DeteksiPage() {
           <div className="space-y-8 animate-slideUp">
 
             {/* Top Back Alert */}
-            <div className="bg-green-50 border border-green-200 text-green-700 text-xs py-3 px-6 rounded-xl text-center font-bold max-w-4xl mx-auto flex items-center justify-center gap-2 animate-slideDown">
-              <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-              Berhasil dianalisis dan disimpan secara otomatis ke riwayat akun Anda!
-            </div>
+            {detectedSkinClass === "no-face" ? (
+              <div className="bg-amber-50 border border-amber-200 text-amber-700 text-xs py-3 px-6 rounded-xl text-center font-bold max-w-4xl mx-auto flex items-center justify-center gap-2 animate-slideDown">
+                <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+                Peringatan: Analisis gagal karena wajah tidak terdeteksi pada gambar. Hasil tidak disimpan.
+              </div>
+            ) : (
+              <div className="bg-green-50 border border-green-200 text-green-700 text-xs py-3 px-6 rounded-xl text-center font-bold max-w-4xl mx-auto flex items-center justify-center gap-2 animate-slideDown">
+                <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                Berhasil dianalisis dan disimpan secara otomatis ke riwayat akun Anda!
+              </div>
+            )}
 
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start max-w-6xl mx-auto">
 
@@ -490,13 +515,15 @@ export default function DeteksiPage() {
                     <div className="flex flex-col items-center gap-1.5 pt-1">
                       <div className="flex items-center gap-2">
                         <span
-                          className="w-3.5 h-3.5 rounded-full inline-block border border-black/10 shadow-sm animate-pulse"
+                          className={`w-3.5 h-3.5 rounded-full inline-block border border-black/10 shadow-sm ${detectedSkinClass !== "no-face" ? "animate-pulse" : ""}`}
                           style={{ backgroundColor: getSkinToneColor(detectedSkinClass) }}
                         ></span>
-                        <span className="text-[10px] font-extrabold text-[#2C2527] uppercase tracking-wider">{detectedSkinClass}</span>
+                        <span className="text-[10px] font-extrabold text-[#2C2527] uppercase tracking-wider">
+                          {detectedSkinClass === "no-face" ? "Tidak Ada Wajah" : detectedSkinClass}
+                        </span>
                       </div>
                       <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-primary-pink/10 text-primary-pink border border-primary-pink/15">
-                        Kode Warna: {getSkinToneColor(detectedSkinClass)}
+                        {detectedSkinClass === "no-face" ? "Kode Warna: N/A" : `Kode Warna: ${getSkinToneColor(detectedSkinClass)}`}
                       </span>
                     </div>
                   </div>
