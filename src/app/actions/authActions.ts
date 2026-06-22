@@ -4,6 +4,7 @@ import prisma from "../../lib/prisma";
 import bcrypt from "bcryptjs";
 import crypto from "crypto";
 import { sendResetPasswordEmail } from "../../lib/email";
+import { headers } from "next/headers";
 
 /**
  * Handles the forgot password request.
@@ -42,8 +43,14 @@ export async function requestPasswordReset(prevState: any, formData: FormData) {
       },
     });
 
+    // Dynamically detect base URL from request headers (localhost vs production)
+    const headerList = await headers();
+    const host = headerList.get("x-forwarded-host") || headerList.get("host") || "spskintone.vercel.app";
+    const protocol = host.includes("localhost") || host.includes("127.0.0.1") ? "http" : "https";
+    const baseUrl = `${protocol}://${host}`;
+
     // Send the email with the reset link
-    const resetUrl = `${process.env.NEXTAUTH_URL}/reset-password?token=${token}&email=${encodeURIComponent(email)}`;
+    const resetUrl = `${baseUrl}/reset-password?token=${token}&email=${encodeURIComponent(email)}`;
     await sendResetPasswordEmail(email, resetUrl);
 
     return {
