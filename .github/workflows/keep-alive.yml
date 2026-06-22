@@ -1,0 +1,54 @@
+name: Keep Supabase Alive
+
+on:
+  schedule:
+    - cron: '0 0 */3 * *' # Runs every 3 days at 00:00 UTC
+  workflow_dispatch: # Allows manual triggering from GitHub Actions tab
+
+jobs:
+  keep-alive:
+    name: Ping Supabase Database
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install PostgreSQL client
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client
+
+      - name: Ping via Direct Connection (Primary)
+        env:
+          DIRECT_URL: ${{ secrets.DIRECT_URL }}
+        run: |
+          if [ -z "$DIRECT_URL" ]; then
+            echo "DIRECT_URL secret is not set in GitHub Repository Secrets."
+            echo "Skipping direct database ping. Proceeding to API ping fallback."
+          else
+            echo "Pinging Supabase database directly..."
+            psql "$DIRECT_URL" -c "SELECT 1 as keep_alive;"
+            echo "Direct database ping completed successfully!"
+          fi
+
+      - name: Ping via Next.js API Route (Fallback)
+        env:
+          APP_URL: ${{ secrets.NEXTAUTH_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          # Use user-defined app URL or fallback
+          URL=${APP_URL:-"https://glowtone-ai.vercel.app"}
+          SECRET=${CRON_SECRET:-"glowtone_keep_alive_secret_2026"}
+          
+          echo "Pinging API keep-alive endpoint: $URL/api/cron/keep-alive..."
+          
+          # Call the keep-alive API endpoint
+          response=$(curl -s -o response.json -w "%{http_code}" -H "Authorization: Bearer $SECRET" "$URL/api/cron/keep-alive")
+          
+          echo "HTTP Response Code: $response"
+          echo "Response Body:"
+          cat response.json
+          
+          if [ "$response" -eq 200 ]; then
+            echo "Next.js API route ping succeeded!"
+          else
+            echo "Next.js API route responded with status $response"
+            echo "Note: If the application is not yet deployed, this warning can be ignored."
+          fi
