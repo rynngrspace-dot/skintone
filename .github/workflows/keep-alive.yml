@@ -10,11 +10,6 @@ jobs:
     name: Ping Supabase Database
     runs-on: ubuntu-latest
     steps:
-      - name: Install PostgreSQL client
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y postgresql-client
-
       - name: Ping via Direct Connection (Primary)
         env:
           DIRECT_URL: ${{ secrets.DIRECT_URL }}
