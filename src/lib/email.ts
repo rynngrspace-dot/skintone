@@ -1,10 +1,13 @@
 import nodemailer from "nodemailer";
 
 // Create reusable transporter object using the default SMTP transport
+const smtpPort = process.env.SMTP_PORT || "465";
+console.log("Initializing SMTP transporter. Host:", process.env.SMTP_HOST || "smtp.gmail.com", "Port:", smtpPort, "User:", process.env.SMTP_USER);
+
 const transporter = nodemailer.createTransport({
   host: process.env.SMTP_HOST || "smtp.gmail.com",
-  port: parseInt(process.env.SMTP_PORT || "465"),
-  secure: process.env.SMTP_PORT === "465", // true for 465, false for other ports
+  port: parseInt(smtpPort),
+  secure: smtpPort === "465", // true for 465, false for other ports
   auth: {
     user: process.env.SMTP_USER,
     pass: process.env.SMTP_PASSWORD,
@@ -181,5 +184,13 @@ export async function sendResetPasswordEmail(email: string, resetLink: string) {
     `,
   };
 
-  return transporter.sendMail(mailOptions);
+  try {
+    console.log(`Sending reset password email to: ${email}`);
+    const info = await transporter.sendMail(mailOptions);
+    console.log("Email sent successfully:", info);
+    return info;
+  } catch (error) {
+    console.error("Error in sendResetPasswordEmail:", error);
+    throw error;
+  }
 }
